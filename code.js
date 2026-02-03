@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { DragControls } from 'three/examples/jsm/controls/DragControls.js';
-import { degToRad } from 'three/src/math/MathUtils.js';
 import faceTex from "./textures/test.jpg";
 import { Vector3 } from 'three';
 import * as CANNON from 'cannon-es';
@@ -573,5 +572,6 @@ UIctx.fillText(`X: ${plr.x.toFixed(2)}`, 20, 30);
 UIctx.fillText(`Y: ${plr.y.toFixed(2)}`, 20, 55);
 UIctx.fillText(`Z: ${plr.z.toFixed(2)}`, 20, 80);
 }
+
 
 renderer.setAnimationLoop(animate);
