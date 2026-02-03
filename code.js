@@ -573,5 +573,4 @@ UIctx.fillText(`Y: ${plr.y.toFixed(2)}`, 20, 55);
 UIctx.fillText(`Z: ${plr.z.toFixed(2)}`, 20, 80);
 }
 
-
 renderer.setAnimationLoop(animate);
