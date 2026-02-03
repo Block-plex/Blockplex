@@ -3,11 +3,38 @@ import { DragControls } from 'three/examples/jsm/controls/DragControls.js';
 import { degToRad } from 'three/src/math/MathUtils.js';
 import faceTex from "./textures/test.jpg";
 import { Vector3 } from 'three';
+import * as CANNON from 'cannon-es';
+
+const world = new CANNON.World();
+world.gravity.set(0, -9.82, 0); // m/s²
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 document.body.appendChild(renderer.domElement);
+
+let UIcanvas = document.getElementById('UI');
+if(!UIcanvas) {
+    UIcanvas = document.createElement('canvas');
+
+    UIcanvas.width = window.innerWidth;
+    UIcanvas.height = window.innerHeight;
+    UIcanvas.id = "UI";
+    document.body.appendChild(UIcanvas);
+}
+
+const UIctx = UIcanvas.getContext('2d');
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    UIcanvas.width = window.innerWidth;
+    UIcanvas.height = window.innerHeight;
+});
+
+UIcanvas.width = window.innerWidth;
+UIcanvas.height = window.innerHeight;
 
 const scene = new THREE.Scene();
 
@@ -94,8 +121,63 @@ let texture = loader.load(
     }
 );
 
+function createCapsule(radius, height) {
+    const sphereShape = new CANNON.Sphere(radius);
+    const cylinderShape = new CANNON.Cylinder(radius, radius, height, 8);
+
+    // Rotate cylinder to stand upright
+    const quat = new CANNON.Quaternion();
+    quat.setFromEuler(Math.PI / 2, 0, 0);
+    const translation = new CANNON.Vec3(0, 0, 0);
+
+    const compound = new CANNON.Body({ mass: 1 });
+
+    // Add cylinder
+    compound.addShape(cylinderShape, translation, quat);
+
+    // Add top sphere
+    compound.addShape(sphereShape, new CANNON.Vec3(0, height / 2, 0));
+
+    // Add bottom sphere
+    compound.addShape(sphereShape, new CANNON.Vec3(0, -height / 2, 0));
+
+    return compound;
+}
+
 function degToRad(degrees) {
     return degrees * (Math.PI / 180);
+}
+
+class Element {
+    constructor(x, y, width, height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
+
+    update() {
+
+    }
+
+    draw(ctx) {
+
+    }
+}
+
+class Panel extends Element {
+    constructor(x, y, width, height, color) {
+        super(x, y, width, height);
+        this.color = color;
+    }
+
+    update() {
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
 }
 
 class Player {
@@ -120,6 +202,12 @@ class Player {
             {x:0, y:(5 / 2) + 1.5, z:0}, {x:0, y:-((5 / 2) + 2.5), z:1.5},
             {x:0, y:-((5 / 2) + 2.5), z:-1.5}, {x:2, y:4, z:0}
         ]
+
+        this.physics = createCapsule(1.5, 12); // radius, height
+        this.physics.position.set(x, y, z);
+        world.addBody(this.physics);
+        this.physics.fixedRotation = true;
+        this.physics.updateMassProperties();
     }   
 
     detectCollision(boxes) {
@@ -149,27 +237,21 @@ class Player {
             part.x += Math.cos(degToRad(this.ry)) * this.offsets[i].x - Math.sin(degToRad(this.ry)) * this.offsets[i].z;
             part.z += Math.sin(degToRad(this.ry)) * this.offsets[i].x + Math.cos(degToRad(this.ry)) * this.offsets[i].z;
 
-            part.rx = this.rx;
-            part.ry = -this.ry;
-            part.rz = this.rz;
-
-            //math.degtorad doesn't work here for some reason
-
             part.part.position.set(part.x, part.y, part.z);
-            part.part.rotation.set(degToRad(part.rx), degToRad(part.ry), degToRad(part.rz));
+            part.part.rotation.set(degToRad(-part.rx), degToRad(-part.ry), degToRad(-part.rz));
         });
 
     }
 }
 
-let keysPressed = {w: false, s: false};
+let keysPressed = {w: false, s: false, a: false, d: false};
 
 document.addEventListener('keydown', function(event) {
    console.log('Key pressed: ' + event.key);
    if (event.key === ' ') {
        //only jump if on ground (vy == 0)
-        if (plr.vy == 0) {
-            plr.vy = 0.3;
+        if (plr.physics.velocity.y < 0.1 && plr.physics.velocity.y > -0.1) {
+            plr.physics.velocity.y = 10;
         }
    }
     if (event.key === 'w') {
@@ -177,10 +259,13 @@ document.addEventListener('keydown', function(event) {
     }
     if (event.key === 's') {
         keysPressed.s = true;
-        plr.vz = 0.1 * Math.cos(degToRad(cameraLookaroundAngle));
-        plr.vx = 0.1 * Math.sin(degToRad(cameraLookaroundAngle));
     }
-
+    if(event.key === 'a') {
+        keysPressed.a = true;
+    }
+    if(event.key === 'd') {
+        keysPressed.d = true;
+    }
 });
 
 document.addEventListener('keyup', function(event) {
@@ -190,6 +275,12 @@ document.addEventListener('keyup', function(event) {
     }
     if (event.key === 's') {
         keysPressed.s = false;
+    }
+    if(event.key === 'a') {
+        keysPressed.a = false;
+    }
+    if(event.key === 'd') {
+        keysPressed.d = false;
     }
 });
 
@@ -247,7 +338,7 @@ class PlayerPart {
 }
 
 class CollisionBox {
-    constructor(width, height, length, x, y, z, whenCollide, color) {
+    constructor(width, height, length, x, y, z, whenCollide, color, masss = 0) {
         this.width = width;
         this.height = height;
         this.length = length;
@@ -260,6 +351,12 @@ class CollisionBox {
         this.part = new THREE.Mesh(this.partGeo, this.partMat);
         this.part.position.set(x, y, z);
         this.part.scale.set(width, height, length);
+        this.physics = new CANNON.Body({
+            mass: masss,
+            shape: new CANNON.Box(new CANNON.Vec3(width/2, height/2, length/2)),
+            position: new CANNON.Vec3(x, y, z)
+        });
+        world.addBody(this.physics);
         scene.add(this.part);
     }
 
@@ -315,29 +412,76 @@ const boxCol8 = new CollisionBox(250, 5, 250, 0, -60, 0, function() {
     plr.x = 0;
     plr.y = 0;
     plr.z = 0;
-}, 0xFF00000);
+}, 0xFF0000);
+const boxCol9 = new CollisionBox(5, 5, 5, 57, 30, 8, function() {}, 0xFF00FF, 1);
+const boxCol10 = new CollisionBox(5, 5, 5, 57, 40, 8, function() {}, 0xFF00FF, 1);
+const boxCol11 = new CollisionBox(5, 5, 5, 57, 50, 8, function() {}, 0xFF00FF, 1);
+const boxCol12 = new CollisionBox(5, 5, 5, 57, 60, 8, function() {}, 0xFF00FF, 1);
+const boxCol13 = new CollisionBox(5, 5, 5, 57, 70, 8, function() {}, 0xFF00FF, 1);
+const boxCol14 = new CollisionBox(10, 25, 10, 120, -30, 0, function() {
+    plr.x = 0;
+    plr.y = 0;
+    plr.z = 0;
+}, 0x00FF00);
+const boxCol15 = new CollisionBox(40, 0.5, 1, 100, 70, 0, function() {}, 0xFF00FF, 1);
 
 const lastTime = 0.0;
+
+let fixedTimeStep = 1.0 / 60.0; // seconds
+
+function quaternionToEuler(q) {
+    const x = q.x, y = q.y, z = q.z, w = q.w;
+
+    const t0 = 2 * (w * x + y * z);
+    const t1 = 1 - 2 * (x * x + y * y);
+    const roll = Math.atan2(t0, t1);
+
+    let t2 = 2 * (w * y - z * x);
+    t2 = Math.max(-1, Math.min(1, t2));
+    const pitch = Math.asin(t2);
+
+    const t3 = 2 * (w * z + x * y);
+    const t4 = 1 - 2 * (y * y + z * z);
+    const yaw = Math.atan2(t3, t4);
+
+    return { x: roll, y: pitch, z: yaw };
+}
 
 function animate(time) {
     box.rotation.x = time / 10000;
     box.rotation.y = time / 20000;
     const delta = (time - lastTime) / 1000; // seconds lastTime = now;
 
-    plr.vy -= 0.01;
-    plr.y += plr.vy;
-    plr.x += plr.vx;
-    plr.z += plr.vz;
+    //plr.y += plr.vy;
+    //plr.x += plr.vx;
+    //plr.z += plr.vz;
 
-    plr.vx *= 0.6;
-    plr.vz *= 0.6;
+    let arraybox = [boxCol, boxCol2, boxCol3, boxCol4, boxCol5, boxCol6, boxCol7, boxCol8, boxCol9, boxCol10, boxCol11, boxCol12, boxCol13, boxCol14, boxCol15];
 
-    let arraybox = [boxCol, boxCol2, boxCol3, boxCol4, boxCol5, boxCol6, boxCol7, boxCol8];
+    world.step(fixedTimeStep, delta, 3);
 
-    let col = plr.detectCollision(
-        arraybox
-    );
-
+    
+    for (let i = 0; i < arraybox.length; i++) {
+        const box = arraybox[i];
+        if (box.physics) {
+            box.part.position.copy(box.physics.position);
+            box.part.quaternion.copy(box.physics.quaternion);
+            box.x = box.physics.position.x;
+            box.y = box.physics.position.y;
+            box.z = box.physics.position.z;
+        }
+    }
+    
+    plr.x = plr.physics.position.x;
+    plr.y = plr.physics.position.y;
+    plr.z = plr.physics.position.z;
+    const euler = quaternionToEuler(plr.physics.quaternion);
+    plr.rx = euler.x * (180 / Math.PI);
+    plr.ry = euler.y * (180 / Math.PI);
+    plr.rz = euler.z * (180 / Math.PI);
+    plr.updatePosition();
+    /*
+    Removing this in favor of cannon-es physics engine
     if (col[0] != 0) {
         let heightgoup = col[0] / 2 + 7.5;
         let diff = (col[4] + heightgoup) - plr.y;
@@ -368,20 +512,31 @@ function animate(time) {
         }
         arraybox[col[6]].whenCollide();
     }
+    */
 
     if(keysPressed.w) {
-        plr.vz = -0.3 * Math.cos(degToRad(cameraLookaroundAngle));
-        plr.vx = -0.3 * Math.sin(degToRad(cameraLookaroundAngle));
-        let target = -cameraLookaroundAngle - 90;
-        let diff = target - plr.ry;
-        plr.ry += diff * 0.1;
+        plr.physics.velocity.z = -10 * Math.cos(degToRad(cameraLookaroundAngle));
+        plr.physics.velocity.x = -10 * Math.sin(degToRad(cameraLookaroundAngle));
+        //let target = -cameraLookaroundAngle - 90;
+        //let diff = target - plr.ry;
+        //plr.ry += diff * 0.1;
     }
     if(keysPressed.s) {
-        plr.vz = 0.3 * Math.cos(degToRad(cameraLookaroundAngle));
-        plr.vx = 0.3 * Math.sin(degToRad(cameraLookaroundAngle));
+        plr.physics.velocity.z = 10 * Math.cos(degToRad(cameraLookaroundAngle));
+        plr.physics.velocity.x = 10 * Math.sin(degToRad(cameraLookaroundAngle));
+    }
+    if(keysPressed.a) {
+        plr.physics.velocity.x = -10 * Math.cos(degToRad(cameraLookaroundAngle));
+        plr.physics.velocity.z = 10 * Math.sin(degToRad(cameraLookaroundAngle));
+    }
+    if(keysPressed.d) {
+        plr.physics.velocity.x = 10 * Math.cos(degToRad(cameraLookaroundAngle));
+        plr.physics.velocity.z = -10 * Math.sin(degToRad(cameraLookaroundAngle));
     }
 
-    plr.updatePosition();
+
+
+    //plr.updatePosition();
 
     camera.position.set(plr.x + 20, plr.y + 5, plr.z);
 
@@ -394,6 +549,29 @@ function animate(time) {
     camera.lookAt(plr.x, plr.y, plr.z);
 
     renderer.render(scene, camera);
+
+    UIctx.clearRect(0, 0, UIcanvas.width, UIcanvas.height);
+
+// Example: draw a crosshair
+UIctx.strokeStyle = "white";
+UIctx.lineWidth = 2;
+
+const cx = UIcanvas.width / 2;
+const cy = UIcanvas.height / 2;
+
+UIctx.beginPath();
+UIctx.moveTo(cx - 10, cy);
+UIctx.lineTo(cx + 10, cy);
+UIctx.moveTo(cx, cy - 10);
+UIctx.lineTo(cx, cy + 10);
+UIctx.stroke();
+
+// Example: draw player coordinates
+UIctx.fillStyle = "white";
+UIctx.font = "20px Arial";
+UIctx.fillText(`X: ${plr.x.toFixed(2)}`, 20, 30);
+UIctx.fillText(`Y: ${plr.y.toFixed(2)}`, 20, 55);
+UIctx.fillText(`Z: ${plr.z.toFixed(2)}`, 20, 80);
 }
 
 renderer.setAnimationLoop(animate);

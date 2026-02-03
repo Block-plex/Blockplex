@@ -8,9 +8,16 @@
         body {
             margin: 0
         }
+        #UI {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none; /* UI won't block mouse */
+        }
     </style>
 </head>
 <body>
     <script src="./code.js" type="module"></script>
+    <canvas id="UI"></canvas>
 </body>
 </html>
