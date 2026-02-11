@@ -1,4 +1,26 @@
-<!DOCTYPE html><html lang=en><script type=importmap>{"imports":{"kR8EF":"./test.2e1cfd9c.jpg"}}</script><meta charset=UTF-8><meta name=viewport content="width=device-width, initial-scale=1.0"><title>Storybuilders [BETA]</title><style>body{margin:0}#UI{pointer-events:none;position:absolute;top:0;left:0}</style><body>
-    <script src=StorybuildersWEB.2f706580.js type=module></script>
-    <canvas id=UI></canvas>
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storybuilders [BETA]</title>
+    <style>
+        body {
+            margin: 0
+        }
+        #UI {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none; /* UI won't block mouse */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="UI"></canvas>
+    <script src="https://unpkg.com/three@0.182.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/noisejs@2.1.0/index.min.js"></script>
+    <script src="./code.js" type="module"></script>
+</body>
+</html>
