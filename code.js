@@ -634,20 +634,20 @@ let pickScene = new Scene([
     new Panel(0, 0, 1, 0.07, 'rgb(220, 220, 220, 1.0)', '#FFFFFF', false),
     new Text(0, 0.06, "Blockplex", "55px Verdana", "rgb(0, 0, 0, 1.0)", false, 0.05, "Verdana"),
     new Button(0, 0.08, 0.05, 0.1, "rgb(220, 220, 220, 1.0)", "rgb(220, 220, 220, 1.0)", "", function() {menuType = 0}, "rgb(240, 240, 240, 1.0)", {xAspect: true}),
-    new ImageElement(0, 0.08, 0.05, 0.2, "./textures/home/home.png", {xAspect: true}),
+    new ImageElement(0, 0.08, 0.05, 0.2, "./home.png", {xAspect: true}),
     new Button(0, 0.28, 0.05, 0.1, "rgb(220, 220, 220, 1.0)", "rgb(220, 220, 220, 1.0)", "", function() {menuType = 1}, "rgb(240, 240, 240, 1.0)", {xAspect: true}),
-    new ImageElement(0, 0.28, 0.05, 0.2, "./textures/home/search.png", {xAspect: true}),
+    new ImageElement(0, 0.28, 0.05, 0.2, "./search.png", {xAspect: true}),
     new Button(0, 0.48, 0.05, 0.1, "rgb(220, 220, 220, 1.0)", "rgb(220, 220, 220, 1.0)", "", function() {menuType = 2}, "rgb(240, 240, 240, 1.0)", {xAspect: true}),
-    new ImageElement(0, 0.48, 0.05, 0.2, "./textures/home/create.png", {xAspect: true}),
+    new ImageElement(0, 0.48, 0.05, 0.2, "./create.png", {xAspect: true}),
     new Button(0, 0.68, 0.05, 0.1, "rgb(220, 220, 220, 1.0)", "rgb(220, 220, 220, 1.0)", "", function() {menuType = 3}, "rgb(240, 240, 240, 1.0)", {xAspect: true}),
-    new ImageElement(0, 0.68, 0.05, 0.2, "./textures/home/avatar.png", {xAspect: true}),
+    new ImageElement(0, 0.68, 0.05, 0.2, "./avatar.png", {xAspect: true}),
 ], 0, 0, window.innerWidth, window.innerHeight);
 
 let homeScene = new Scene([
     new Panel(0, 0, 1, 1, 'rgb(20, 20, 20, 1.0)', '#FFFFFF', false),
     new Text(0.07, 0.14, "Welcome, {unreferenced varible, please use after init}"+"!", "", "rgb(230, 230, 230, 1.0)", false, 0.05, "Verdana"),
     new Button(0.08, 0.16, 0.08, 0.2, "rgb(90, 90, 90, 1.0)", "rgb(90, 90, 90, 1.0)", "", function() {menuType = 4}, "rgb(110, 110, 110, 1.0)", {}),
-    new ImageElement(0.08, 0.16, 0.08, 0.2, "./textures/game.png", {xAspect: true}),
+    new ImageElement(0.08, 0.16, 0.08, 0.2, "./game.png", {xAspect: true}),
     new Text(0.08, 0.36, "Test", "", "rgb(255, 255, 255, 1.0)", false, 0.04, "Arial")
 ], 0, 0, window.innerWidth, window.innerHeight);
 
@@ -657,7 +657,7 @@ let searchScene = new Scene([
 ], 0, 0, window.innerWidth, window.innerHeight);
 
 let createScene = new Scene([
-    new ImageElement(0, 0, 1, 1, "./textures/create_tab.png", {}),
+    new ImageElement(0, 0, 1, 1, "./create_tab.png", {}),
     new Text(0.5, 0.3, "Start creating games now", "", "rgb(255, 255, 255, 1.0)", true, 0.1, "Verdana"),
     new Button(0.5 - 0.1, 0.5 - 0.05, 0.2, 0.1, "rgb(0, 200, 50, 1.0)", "", "Start", function() {}, "rgb(0, 150, 25, 1.0)", {})
 ], 0, 0, window.innerWidth, window.innerHeight);
