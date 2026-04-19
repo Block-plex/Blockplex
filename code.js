@@ -4,12 +4,21 @@ import * as CANNON from "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cann
 //console.log("imageSrc =", faceTex, typeof faceTex);
 //console.log("testImg =", testImg, typeof testImg); // Should be a string URL
 
+let maploaded = false;
+let map = [];
+
 const lastTime = 0.0;
 
 const world = new CANNON.World();
 world.gravity.set(0, -9.82, 0); // m/s²
 
 const scene = new THREE.Scene();
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.shadowMap.enabled = true;
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 let cameraLookaroundAngle = 0;
 let cameraLookaroundAngleX = 0;
@@ -36,6 +45,8 @@ class CollisionBox {
         this.partGeo = new THREE.BoxGeometry();
         this.partMat = new THREE.MeshStandardMaterial({color: color, wireframe: false})
         this.part = new THREE.Mesh(this.partGeo, this.partMat);
+        this.part.castShadow = true;
+        this.part.receiveShadow = true;
         this.part.position.set(x, y, z);
         this.part.scale.set(width, height, length);
         if(!nophysics) {
@@ -59,44 +70,14 @@ class CollisionBox {
     }
 }
 
-const boxCol = new CollisionBox(15, 5, 15, 0, -30, 0, function() {}, 0x00FF00);
-const boxCol2 = new CollisionBox(10, 5, 10, 20, -30, 0, function() {}, 0x00FF00);
-const boxCol3 = new CollisionBox(10, 5, 10, 40, -30, 0, function() {}, 0x00FF00);
-const boxCol4 = new CollisionBox(10, 7, 10, 60, -30, 0, function() {}, 0x00FF00);
-const boxCol5 = new CollisionBox(10, 25, 10, 80, -30, 0, function() {
-    plr.x = 0;
-    plr.y = 0;
-    plr.z = 0;
-}, 0xFFAA00);
-const boxCol6 = new CollisionBox(10, 25, 10, 60, -30, 15, function() {}, 0x00FF00);
-const boxCol7 = new CollisionBox(10, 25, 10, 60, -30, -15, function() {}, 0x00FF00);
-const boxCol8 = new CollisionBox(250, 5, 250, 0, -60, 0, function() {
-    plr.x = 0;
-    plr.y = 0;
-    plr.z = 0;
-}, 0xFF0000);
-const boxCol9 = new CollisionBox(5, 5, 5, 57, 30, 8, function() {}, 0xFF00FF, 0);
-const boxCol10 = new CollisionBox(5, 5, 5, 57, 40, 8, function() {}, 0xFF00FF, 0);
-const boxCol11 = new CollisionBox(5, 5, 5, 57, 50, 8, function() {}, 0xFF00FF, 0);
-const boxCol12 = new CollisionBox(5, 5, 5, 57, 60, 8, function() {}, 0xFF00FF, 0);
-const boxCol13 = new CollisionBox(5, 5, 5, 57, 70, 8, function() {}, 0xFF00FF, 0);
-const boxCol14 = new CollisionBox(10, 25, 10, 120, -30, 0, function() {
-    plr.x = 0;
-    plr.y = 0;
-    plr.z = 0;
-}, 0x00FF00);
-const boxCol15 = new CollisionBox(40, 0.5, 1, 100, 70, 0, function() {}, 0xFF00FF, 0);
-
 socket.onmessage = (msg) => {
   const data = JSON.parse(msg.data);
 
   if(data.type === "id") {
     myId = data.id;
   }else if (data.type === "state"){
-      let arraybox = [boxCol, boxCol2, boxCol3, boxCol4, boxCol5, boxCol6, boxCol7, boxCol8, boxCol9, boxCol10, boxCol11, boxCol12, boxCol13, boxCol14, boxCol15];
-
-//console.log("Received data:", data);
-
+      if(maploaded) {
+        let arraybox = map;
   if (data.boxes) {
     for (let i = 0; i < data.boxes.length; i++) {
       const b = data.boxes[i];
@@ -104,25 +85,46 @@ socket.onmessage = (msg) => {
 
       mesh.position.set(b.x, b.y, b.z);
       mesh.quaternion.set(b.qx, b.qy, b.qz, b.qw);
-      arraybox[i].physics.position.set(b.x, b.y, b.z);
-        arraybox[i].physics.quaternion.set(b.qx, b.qy, b.qz, b.qw);
+      //arraybox[i].physics.position.set(b.x, b.y, b.z);
+      //  arraybox[i].physics.quaternion.set(b.qx, b.qy, b.qz, b.qw);
     }
   }
+      }
   if(data.players) {
     otherPlayers = data.players;
   }
   }else if(data.type === "chat") {
     console.log("Chat message from " + data.sender + ": " + data.message);
     if(currentScene === chatScene) {
-        let newText = new Text(0.025, 0.77 + (0.03 * (currentScene.uielements.length - 3)), data.message, "15px Arial", "#FFFFFF", false, true);
+        let newText = new Text(0.025, 0.77 + (0.03 * (currentScene.uielements.length - 3)), data.message, "15px Arial", "#FFFFFF", false, 0.03);
         currentScene.uielements.push(newText);
     }
+  }else if(data.type === "map") {
+
+    for (let i = 0; i < data.data.length; i++) {
+        const block = data.data[i];
+
+let col = new CollisionBox(
+    block.size.x,
+    block.size.y,
+    block.size.z,
+    block.pos.x,
+    block.pos.y,
+    block.pos.z,
+    () => {},
+    `rgb(${block.color.r}, ${block.color.g}, ${block.color.b})`,
+    0,
+    false
+);
+
+        map.push(col);
+    }
+    maploaded = true;
+
+    console.log(data.data);
+    console.log("map data loaded!!");
   }
 };
-
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
 
 let selected = -1;
 let behindorc = 0;
@@ -570,6 +572,38 @@ class Scene {
     }
 }
 
+let cId = 0;
+
+class Item {
+    constructor(name) {
+        this.id = cId;
+        this.name = name;
+        cId++;
+    }
+
+    update() {
+
+    }
+}
+
+class Part extends Item {
+    constructor(name, x, y, z, width, height, length) {
+        super(name);
+        this.x = x; this.y = y; this.z = z; this.width = width; this.height = height; this.length = length;
+        this.box = new CollisionBox(width, height, length, x, y, z, function() {}, "rgb(128, 255, 128)", 0, false);
+    }
+
+    update() {
+
+    }
+}
+
+class GameStorage {
+    constructor() {
+        this.items = [new Part("Baseplate", 0, -5, 0, 5, 5, 5)];
+    }
+}
+
 let uielements = [];
 
 //add element
@@ -626,7 +660,7 @@ let chatScene = new Scene(chatuielements, 0, 0, window.innerWidth, window.innerH
 
 //color, outlinecolor, text, onclick, hovercolor
 
-let menuType = 0;
+let menuType = 6;
 let serverIn = 0;
 
 let pickScene = new Scene([
@@ -661,6 +695,15 @@ let createScene = new Scene([
     new Text(0.5, 0.3, "Start creating games now", "", "rgb(255, 255, 255, 1.0)", true, 0.1, "Verdana"),
     new Button(0.5 - 0.1, 0.5 - 0.05, 0.2, 0.1, "rgb(0, 200, 50, 1.0)", "", "Start", function() {}, "rgb(0, 150, 25, 1.0)", {})
 ], 0, 0, window.innerWidth, window.innerHeight);
+
+let creatorScene = new Scene([
+    new Panel(0, 0, 1, 0.05, "rgb(64, 64, 64)", "", false),
+    new Panel(0, 0.05, 0.2, 0.95, "rgb(128, 128, 128)", "", false),
+    new Panel(0.865, 0.05, 0.5, 0.95, "rgb(128, 128, 128)", "", false),
+    new Panel(0.2, 0.8, 0.665, 0.2, "rgb(140, 140, 140)", "", false)
+], window.innerWidth / 5, (window.innerHeight / 5), window.innerWidth / 1.5, window.innerHeight / 1.25);
+
+let game = new GameStorage();
 
 let behindScene = homeScene;
 let currentScene = s;
@@ -830,7 +873,7 @@ class PlayerPart {
 }
 
 
-const plr = new Player(scene, 0, 0, 0);
+const plr = new Player(scene, 0, 15, 0);
 
 const axisHelper = new THREE.AxesHelper(3000);
 scene.add(axisHelper)
@@ -847,6 +890,9 @@ scene.add(plane);
 
 const sun = new THREE.DirectionalLight(0xffffff, 1.0);
 sun.position.set(10, 20, 10);
+sun.shadow.mapSize.width = 2048;
+sun.shadow.mapSize.height = 2048;
+sun.castShadow = true;
 scene.add(sun);
 
 const ambient = new THREE.AmbientLight(0x404040);
@@ -991,6 +1037,8 @@ function animate(time) {
             handleGamepad(gp);
         }
     }
+
+    
 
 for (const id in otherPlayers) {
     if (id === myId) continue; // skip your own player
